@@ -1,5 +1,5 @@
 #
-#Credit to @derinsiderx on Twitter, thanks for taken my crappy scripts and creating this awesomeness!
+# Built for XXXX by XX Cyber XXX.XXX|XXXX
 #
 import requests
 import json
@@ -7,8 +7,6 @@ import sys
 import time
 import re
 import socket
-import datetime
-from apscheduler.schedulers.blocking import BlockingScheduler
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -23,29 +21,31 @@ frequency = 60 # In minutes
 
 #------*****------#
 
-misp_url = "https://" + misp_server + "/attributes/restSearch/json/null/"
+misp_url = "https://" + misp_server + "/attributes/restSearch"
 
 
-# EDIT TO GET OTHER DATA e.g: 
+# EDIT TO GET OTHER DATA
+last_n_days = "5d"
+
 MISP_PData_list = (
-    {"qradar_ref_set": "MISP_IOC_IP", "MISP_PData": {"last": "1d", "type": "ip-src", "category": "Network activity", "enforceWarninglist": "True"}},
-    {"qradar_ref_set": "MISP_IOC_IP", "MISP_PData": {"last": "1d", "type": "ip-dst", "category": "Network activity", "enforceWarninglist": "True"}},
-    {"qradar_ref_set": "MISP_IOC_CIDR", "MISP_PData": {"last": "1d", "type": "ip-src", "category": "Network activity", "enforceWarninglist": "True"}},
-    {"qradar_ref_set": "MISP_IOC_CIDR", "MISP_PData": {"last": "1d", "type": "ip-dst", "category": "Network activity", "enforceWarninglist": "True"}},
-    {"qradar_ref_set": "MISP_IOC_MD5", "MISP_PData": {"last": "1d", "type": "md5", "category": "Payload delivery", "enforceWarninglist": "True"}},
-    {"qradar_ref_set": "MISP_IOC_SHA256", "MISP_PData": {"last": "1d", "type": "sha256", "category": "Payload delivery", "enforceWarninglist": "True"}},
-    {"qradar_ref_set": "MISP_IOC_DOMAIN", "MISP_PData": {"last": "1d", "type": "domain", "category": "Network activity", "enforceWarninglist": "True"}},
-    {"qradar_ref_set": "MISP_IOC_URL", "MISP_PData": {"last": "1d", "type": "url", "category": "Network activity", "enforceWarninglist": "True"}}
+    {"qradar_ref_set": "MISP_IOC_IP", "MISP_PData": {"last": last_n_days, "type": "ip-src", "category": "Network activity", "enforceWarninglist": "True",  "threat_level_id": [2, 3, 4]}},
+    {"qradar_ref_set": "MISP_IOC_IP", "MISP_PData": {"last": last_n_days, "type": "ip-dst", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [2, 3, 4]}},
+    {"qradar_ref_set": "MISP_IOC_CIDR", "MISP_PData": {"last": last_n_days, "type": "ip-src", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [2, 3, 4]}},
+    {"qradar_ref_set": "MISP_IOC_CIDR", "MISP_PData": {"last": last_n_days, "type": "ip-dst", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [2, 3, 4]}},
+    {"qradar_ref_set": "MISP_IOC_MD5", "MISP_PData": {"last": last_n_days, "type": "md5", "category": "Payload delivery", "enforceWarninglist": "True", "threat_level_id": [2, 3, 4]}},
+    {"qradar_ref_set": "MISP_IOC_SHA256", "MISP_PData": {"last": last_n_days, "type": "sha256", "category": "Payload delivery", "enforceWarninglist": "True", "threat_level_id": [2, 3, 4]}},
+    {"qradar_ref_set": "MISP_IOC_DOMAIN", "MISP_PData": {"last": last_n_days, "type": "domain", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [2, 3, 4]}},
+    {"qradar_ref_set": "MISP_IOC_URL", "MISP_PData": {"last": last_n_days, "type": "url", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [2, 3, 4]}},
+
+    {"qradar_ref_set": "MISP_IOC_IP_HIGH", "MISP_PData": {"last": last_n_days, "type": "ip-src", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [1]}},
+    {"qradar_ref_set": "MISP_IOC_IP_HIGH", "MISP_PData": {"last": last_n_days, "type": "ip-dst", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [1]}},
+    {"qradar_ref_set": "MISP_IOC_CIDR_HIGH", "MISP_PData": {"last": last_n_days, "type": "ip-src", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [1]}},
+    {"qradar_ref_set": "MISP_IOC_CIDR_HIGH", "MISP_PData": {"last": last_n_days, "type": "ip-dst", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [1]}},
+    {"qradar_ref_set": "MISP_IOC_MD5_HIGH", "MISP_PData": {"last": last_n_days, "type": "md5", "category": "Payload delivery", "enforceWarninglist": "True", "threat_level_id": [1]}},
+    {"qradar_ref_set": "MISP_IOC_SHA256_HIGH", "MISP_PData": {"last": last_n_days, "type": "sha256", "category": "Payload delivery", "enforceWarninglist": "True", "threat_level_id": [1]}},
+    {"qradar_ref_set": "MISP_IOC_DOMAIN_HIGH", "MISP_PData": {"last": last_n_days, "type": "domain", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [1]}},
+    {"qradar_ref_set": "MISP_IOC_URL_HIGH", "MISP_PData": {"last": last_n_days, "type": "url", "category": "Network activity", "enforceWarninglist": "True", "threat_level_id": [1]}}
 )
-
-
-# MISP_PData = {
-#    "timestamp": "1d",
-#    "category": "Payload delivery",
-#    "type": "md5"
-#    }
-#
-# QUERY FOR MD5 HASH, refer to MISP API GUIDE FOR OTHER VALUES
 
 
 MISP_headers = {
@@ -57,6 +57,7 @@ QRadar_headers = {
     'sec': qradar_auth_key,
     'content-type': "application/json",
     }
+
 
 def validate_refSet():
     for import_export_pair in MISP_PData_list:
@@ -79,7 +80,6 @@ def validate_refSet():
         else:
             print(time.strftime("%H:%M:%S") + " -- " + "QRadar Reference Set does not exist, please verify if reference set exists in QRadar.")
             sys.exit()
-
 
 
 def get_misp_data(refSet_etype, qradar_ref_set, MISP_PData):
@@ -122,6 +122,7 @@ def get_misp_data(refSet_etype, qradar_ref_set, MISP_PData):
         print(time.strftime("%H:%M:%S") + " -- " + "MISP API Query (Failed), Please check the network connectivity")
         sys.exit()
 
+
 def qradar_post_IP(ioc_cleaned_data, ioc_count_cleaned, qradar_ref_set):
     QRadar_POST_url = "https://" + qradar_server + "/api/reference_data/sets/bulk_load/" + qradar_ref_set
     print(time.strftime("%H:%M:%S") + " -- " + "Initiating, IOC POST to QRadar ")
@@ -143,6 +144,7 @@ def qradar_post_all(import_data, ioc_count, qradar_ref_set):
     else:
         print(time.strftime("%H:%M:%S") + " -- " + "Could not POST IOCs to QRadar (Failure)")
 
+
 def socket_check_qradar():
     print(time.strftime("%H:%M:%S") + " -- " + "Checking HTTPS Connectivity to QRadar")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -152,6 +154,7 @@ def socket_check_qradar():
         socket_check_misp()
     else:
         print(time.strftime("%H:%M:%S") + " -- " + "Could not establish HTTPS connection to QRadar, Please check connectivity before proceeding.")
+
 
 def socket_check_misp():
     print(time.strftime("%H:%M:%S") + " -- " + "Checking HTTPS Connectivity to MISP")
@@ -163,9 +166,7 @@ def socket_check_misp():
     else:
         print(time.strftime("%H:%M:%S") + " -- " + "Could not establish HTTPS connection to MISP Server, Please check connectivity before proceeding.")
 
-# scheduler = BlockingScheduler()
-# scheduler.add_job(socket_check_qradar, 'interval', minutes=frequency, next_run_time=datetime.datetime.now())
-# scheduler.start()
+# todo: run script by scheduler
 
 
 if __name__ == "__main__":
