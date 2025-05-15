@@ -8,6 +8,7 @@ import time
 import re
 import socket
 import urllib3
+import datetime
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 #------*****------#
@@ -25,7 +26,9 @@ misp_url = "https://" + misp_server + "/attributes/restSearch"
 
 
 # EDIT TO GET OTHER DATA
+# USE LAST_N_DAYS TO CONTROL WHAT IOCS ARE IMPORTED
 last_n_days = "5d"
+now = int(datetime.datetime.now().timestamp())
 
 MISP_PData_list = (
     {"qradar_ref_set": "MISP_IOC_IP", "MISP_PData": {"last": last_n_days, "type": "ip-src", "category": "Network activity", "enforceWarninglist": "True",  "threat_level_id": [2, 3, 4]}},
@@ -92,6 +95,17 @@ def get_misp_data(refSet_etype, qradar_ref_set, MISP_PData):
         print(time.strftime("%H:%M:%S") + " -- " + "MISP API Query (Success) ")
         for data in json_data["response"]["Attribute"]:
             ioc = (data['value'])
+            # strip IOCs that were last seen longer than last_n_days
+            try:
+                ioc_lastseen_timestamp = int(datetime.datetime.fromisoformat(data['last_seen']).timestamp())
+            except Exception:
+                print(f"{time.strftime("%H:%M:%S")} -- IOC: {ioc} no last seen date from MISP, will add...")
+                ioc_lastseen_timestamp = now
+            ioc_timedelta = now - ioc_lastseen_timestamp
+            ioc_acceptable_timedelta = int(str(last_n_days).strip("d")) * 86400
+            if ioc_timedelta >= ioc_acceptable_timedelta:
+                print(f"{time.strftime("%H:%M:%S")} -- IOC: {ioc} is older than {last_n_days}, will skip...")
+                continue
             if refSet_etype == "CIDR":
                 if "/" not in ioc:
                     continue
@@ -129,7 +143,6 @@ def qradar_post_IP(ioc_cleaned_data, ioc_count_cleaned, qradar_ref_set):
     qradar_response = requests.request("POST", QRadar_POST_url, data=ioc_cleaned_data, headers=QRadar_headers, verify=False)
     if qradar_response.status_code == 200:
         print(time.strftime("%H:%M:%S") + " -- " + "Imported " + str(ioc_count_cleaned) + " IOCs to QRadar (Success)" )
-        print(time.strftime("%H:%M:%S") + " -- " + "Waiting to next schedule in " + str(frequency) + "minutes")
     else:
         print(time.strftime("%H:%M:%S") + " -- " + "Could not POST IOCs to QRadar (Failure)")
       
@@ -140,7 +153,6 @@ def qradar_post_all(import_data, ioc_count, qradar_ref_set):
     qradar_response = requests.request("POST", QRadar_POST_url, data=import_data, headers=QRadar_headers, verify=False)
     if qradar_response.status_code == 200:
         print(time.strftime("%H:%M:%S") + " -- " + " (Finished) Imported " + str(ioc_count) + " IOCs to QRadar (Success)" )
-        print(time.strftime("%H:%M:%S") + " -- " + "Waiting to next schedule in " + str(frequency) + "minutes")
     else:
         print(time.strftime("%H:%M:%S") + " -- " + "Could not POST IOCs to QRadar (Failure)")
 
